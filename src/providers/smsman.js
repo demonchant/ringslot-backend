@@ -18,39 +18,26 @@ export const smsMan = {
 
   async getNumber(service, country = 'any') {
     const { data } = await client().get('/get-number', {
-      params: {
-        application_id: service,
-        country_id: country === 'any' ? '1' : country,
-      },
+      params: { application_id: service, country_id: country === 'any' ? '1' : country },
     });
     if (data.error_code) throw new Error(data.error_code);
-    return {
-      id:       String(data.request_id),
-      number:   `+${data.number}`,
-      provider: this.name,
-    };
+    return { id: String(data.request_id), number: `+${data.number}`, provider: this.name };
   },
 
   async getStatus(orderId) {
-    const { data } = await client().get('/get-sms', {
-      params: { request_id: orderId },
-    });
+    const { data } = await client().get('/get-sms', { params: { request_id: orderId } });
     if (data.error_code === 'wait_sms') return { status: 'waiting', sms: null };
-    if (data.error_code)               return { status: 'cancelled', sms: null };
+    if (data.error_code) return { status: 'cancelled', sms: null };
     return { status: 'received', sms: data.sms_code };
   },
 
   async cancel(orderId) {
-    await client().get('/set-status', {
-      params: { request_id: orderId, status: 'reject' },
-    });
+    await client().get('/set-status', { params: { request_id: orderId, status: 'reject' } });
   },
 
   async getPrices(service) {
     try {
-      const { data } = await client().get('/get-prices', {
-        params: { country_id: '1' },
-      });
+      const { data } = await client().get('/get-prices', { params: { country_id: '1' } });
       return data[service] ? parseFloat(data[service].cost) : null;
     } catch {
       return null;
