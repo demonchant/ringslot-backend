@@ -34,7 +34,11 @@ export async function getCurrencies(req, res) {
 export async function createDeposit(req, res) {
   try {
     const { amount, currency = 'usdttrc20' } = req.body;
-    if (!amount || parseFloat(amount) < 5) return res.status(400).json({ error: 'Minimum deposit is $5.00' });
+    const lowFee = ['usdttrc20', 'trx', 'usdc', 'ltc'];
+    const minAmount = lowFee.includes((currency || 'usdttrc20').toLowerCase()) ? 5 : 20;
+    if (!amount || parseFloat(amount) < minAmount) {
+      return res.status(400).json({ error: `Minimum deposit for this currency is $${minAmount}.00` });
+    }
 
     const { data: payment } = await np().post('/payment', {
       price_amount: parseFloat(amount),
