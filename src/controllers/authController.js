@@ -15,7 +15,29 @@ export async function register(req, res) {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
-    if (password.length < 8) return res.status(400).json({ error: 'Password must be 8+ characters' });
+    if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    // Strict email format validation
+    const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+
+    // Block disposable/temporary email domains
+    const blockedDomains = new Set([
+      'mailinator.com','guerrillamail.com','tempmail.com','throwam.com',
+      'sharklasers.com','yopmail.com','fakeinbox.com','mailnull.com',
+      'trashmail.com','trashmail.me','dispostable.com','maildrop.cc',
+      'getnada.com','moakt.com','mohmal.com','tempmailaddress.com',
+      'tmpmail.net','tmpmail.org','10minutemail.com','10minutemail.net',
+      'filzmail.com','emailondeck.com','getairmail.com','incognitomail.com',
+      'guerrillamail.info','spam4.me','tempr.email','discard.email',
+      'mytemp.email','spamgourmet.com','spamgourmet.net','spamgourmet.org',
+    ]);
+    const emailDomain = email.split('@')[1]?.toLowerCase();
+    if (blockedDomains.has(emailDomain)) {
+      return res.status(400).json({ error: 'Disposable email addresses are not allowed' });
+    }
 
     const exists = await query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
     if (exists.rows.length) return res.status(409).json({ error: 'Email already registered' });

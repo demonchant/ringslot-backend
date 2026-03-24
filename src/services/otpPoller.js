@@ -4,7 +4,7 @@ import { parseOTP } from '../utils/smsParser.js';
 import logger from '../utils/logger.js';
 
 const INTERVAL_MS = 5000;
-const MAX_POLLS = 24; // 2 minutes before auto-refund
+const MAX_POLLS = 120; // 10 minutes before auto-refund
 
 export async function enqueue(orderId, provider, providerOrderId) {
   await query(
