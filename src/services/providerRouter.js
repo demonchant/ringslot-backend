@@ -1,11 +1,17 @@
+// src/services/providerRouter.js
 import { smsActivate } from '../providers/smsactivate.js';
-import { fiveSim } from '../providers/fivesim.js';
-import { smsMan } from '../providers/smsman.js';
-import { query } from '../config/database.js';
-import redis from '../config/redis.js';
-import logger from '../utils/logger.js';
+import { fiveSim }     from '../providers/fivesim.js';
+import { smsMan }      from '../providers/smsman.js';
+import { query }       from '../config/database.js';
+import redis           from '../config/redis.js';
+import logger          from '../utils/logger.js';
+import { toProviderKey } from '../config/services.js';
 
-const PROVIDERS = { smsactivate: smsActivate, fivesim: fiveSim, smsman: smsMan };
+const PROVIDERS = {
+  smsactivate: smsActivate,
+  fivesim:     fiveSim,
+  smsman:      smsMan,
+};
 
 async function enabledProviders() {
   const { rows } = await query(
@@ -14,33 +20,42 @@ async function enabledProviders() {
   return rows.map((r) => PROVIDERS[r.provider_name]).filter(Boolean);
 }
 
-async function getPrice(provider, service) {
-  const key = `price:${provider.name}:${service}`;
+async function getPrice(provider, serviceKey) {
+  const providerKey = toProviderKey(serviceKey, provider.name);
+  const cacheKey = `price:${provider.name}:${providerKey}`;
   try {
-    const cached = await redis.get(key);
+    const cached = await redis.get(cacheKey);
     if (cached) return parseFloat(cached);
-    const price = await provider.getPrices(service);
-    if (price) await redis.setex(key, 300, String(price));
+    const price = await provider.getPrices(providerKey);
+    if (price) await redis.setex(cacheKey, 300, String(price));
     return price;
   } catch {
     return null;
   }
 }
 
-export async function buyWithFailover(service, country = 'any') {
+export async function buyWithFailover(serviceKey, country = 'any') {
   const providers = await enabledProviders();
+
+  // Get prices from all providers in parallel, translated to their key format
   const priced = (
-    await Promise.all(providers.map(async (p) => ({ p, price: await getPrice(p, service) })))
+    await Promise.all(
+      providers.map(async (p) => ({
+        p,
+        price: await getPrice(p, serviceKey),
+        providerKey: toProviderKey(serviceKey, p.name),
+      }))
+    )
   )
     .filter((x) => x.price > 0)
     .sort((a, b) => a.price - b.price);
 
   if (!priced.length) throw new Error('No providers available for this service');
 
-  for (const { p, price } of priced) {
+  for (const { p, price, providerKey } of priced) {
     try {
-      const result = await p.getNumber(service, country);
-      logger.info('Number bought', { provider: p.name, service, number: result.number });
+      const result = await p.getNumber(providerKey, country);
+      logger.info('Number bought', { provider: p.name, service: serviceKey, providerKey, number: result.number });
       return { ...result, providerPrice: price };
     } catch (err) {
       logger.warn(`Provider ${p.name} failed`, { error: err.message });
@@ -59,4 +74,21 @@ export async function cancelOrder(providerName, orderId) {
   const p = PROVIDERS[providerName];
   if (!p) throw new Error(`Unknown provider: ${providerName}`);
   await p.cancel(orderId);
+}
+
+// Get live prices for all services from all providers (used for pricing page / dashboard)
+export async function getAllServicePrices() {
+  const providers = await enabledProviders();
+  const results = {};
+
+  await Promise.allSettled(
+    providers.map(async (p) => {
+      try {
+        const prices = await p.getAllPrices?.();
+        if (prices) results[p.name] = prices;
+      } catch {}
+    })
+  );
+
+  return results;
 }
