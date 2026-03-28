@@ -7,6 +7,7 @@ import logger from './utils/logger.js';
 import pool from './config/database.js';
 import redis from './config/redis.js';
 import { startPoller, recoverPending } from './services/otpPoller.js';
+import { seedServicesIfEmpty } from './services/seedServices.js';
 
 const app  = express();
 const PORT = process.env.PORT || 4000;
@@ -23,10 +24,10 @@ const ALLOWED_ORIGINS = [
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    return cb(null, true); // tighten after DNS propagates
+    return cb(null, true); // allow all for now — tighten after DNS is stable
   },
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization','X-API-Key'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
   credentials: true,
 }));
 
@@ -47,9 +48,15 @@ async function boot() {
   try {
     await pool.query('SELECT 1');
     logger.info('PostgreSQL connected');
+
     await redis.connect();
+
+    // Auto-seed services table if empty — no manual SQL needed
+    await seedServicesIfEmpty();
+
     startPoller();
     await recoverPending();
+
     app.listen(PORT, () => logger.info(`RingSlot API running on port ${PORT}`));
   } catch (err) {
     logger.error('Boot failed', { error: err.message });

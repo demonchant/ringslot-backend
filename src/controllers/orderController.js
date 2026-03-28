@@ -8,11 +8,19 @@ import { sendOTPEmail } from '../utils/email.js';
 import logger from '../utils/logger.js';
 
 export async function listServices(req, res) {
-  const { rows } = await query(
-    `SELECT service_key, display_name, markup, base_price
-     FROM services WHERE is_active = TRUE ORDER BY display_name`
-  );
-  return res.json(rows);
+  try {
+    const { rows } = await query(
+      `SELECT service_key, display_name, markup,
+              COALESCE(base_price, 0) AS base_price
+       FROM services
+       WHERE is_active = TRUE
+       ORDER BY display_name ASC`
+    );
+    return res.json(rows);
+  } catch (err) {
+    logger.error('listServices error', { error: err.message });
+    return res.status(500).json({ error: 'Could not load services' });
+  }
 }
 
 export async function buyNumber(req, res) {
