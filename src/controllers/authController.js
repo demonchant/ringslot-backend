@@ -4,7 +4,7 @@ import jwt       from 'jsonwebtoken';
 import { v4 as uuid } from 'uuid';
 import { query } from '../config/database.js';
 import { hashDevice, generateToken, parseDeviceLabel } from '../utils/deviceFingerprint.js';
-import { sendLoginVerificationEmail, sendWelcomeEmail } from '../utils/email.js';
+import { sendLoginVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from '../utils/email.js';
 import logger from '../utils/logger.js';
 
 // ── JWT helper ────────────────────────────────────────────────
@@ -315,7 +315,6 @@ export async function forgotPassword(req, res) {
       [user.id, token, expiresAt]
     );
 
-    const { sendPasswordResetEmail } = await import('../utils/email.js');
     sendPasswordResetEmail({ to: user.email, token }).catch((err) =>
       logger.warn('Password reset email failed', { error: err.message })
     );
