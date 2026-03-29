@@ -11,14 +11,14 @@ import { getBalance, getTransactions, getCurrencies, createDeposit, depositStatu
 import { getStats, getDailyRevenue, setMarkup, getProviders, toggleProvider, getUsers, toggleUser, blockIp, getAllOrders, withdraw, getWithdrawals } from '../controllers/adminController.js';
 import { createTicket, getMyTickets, getTicketMessages, replyToTicket, closeMyTicket, adminGetAllTickets, adminGetTicketMessages, adminReplyTicket, adminSetTicketStatus, adminUnreadCount } from '../controllers/supportController.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
-import { authLimiter, buyLimiter } from '../middleware/rateLimit.js';
+import { authLimiter, buyLimiter, forgotPasswordLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
 // ── Public ────────────────────────────────────────────────────
 router.post('/auth/register',    authLimiter, register);
 router.post('/auth/login',       authLimiter, login);
-router.post('/auth/forgot-password', authLimiter, forgotPassword);
+router.post('/auth/forgot-password', forgotPasswordLimiter, forgotPassword);
 router.post('/auth/reset-password',  authLimiter, resetPassword);
 router.get('/auth/validate-reset/:token', validateResetToken);
 router.get('/auth/verify-device/:token',  verifyDevice);

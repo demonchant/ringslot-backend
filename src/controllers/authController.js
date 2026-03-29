@@ -332,7 +332,14 @@ export async function forgotPassword(req, res) {
     return res.json(OK);
   } catch (err) {
     logger.error('forgotPassword error', { error: err.message, stack: err.stack });
-    return res.status(500).json({ error: 'Something went wrong. Please try again later.' });
+    // Return the actual error in the message so it shows in the UI during debugging
+    const isDev = process.env.NODE_ENV !== 'production';
+    return res.status(500).json({
+      error: isDev
+        ? `Server error: ${err.message}`
+        : 'Something went wrong. Please try again later.',
+      detail: err.message, // always include so frontend can log it
+    });
   }
 }
 
