@@ -235,10 +235,10 @@ export default function Admin() {
           </div>
         )}
 
+        {/* Support */}
+        {tab === 6 && <AdminSupport />}
+
       </div>
     </div>
   );
 }
-
-// NOTE: AdminSupport component is appended below as a separate export
-// To use it, import and render <AdminSupport /> inside the Support tab (tab === 6)

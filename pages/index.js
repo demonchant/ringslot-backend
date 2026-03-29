@@ -1,104 +1,123 @@
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '../components/Navbar';
+import LogoIcon from '../components/LogoIcon';
+import ServiceLogo from '../components/ServiceLogo';
 
-const FEATURES = [
-  { icon: '⚡', title: 'Instant delivery', desc: 'Numbers delivered in seconds with intelligent routing for maximum availability.' },
-  { icon: '🔒', title: 'Crypto only', desc: 'Deposit with USDT, BTC, ETH and more. Payments are final — zero chargebacks, zero reversals.' },
-  { icon: '🌍', title: 'Global coverage', desc: 'Numbers from 100+ countries for Telegram, Google, Discord, WhatsApp and 50+ more services.' },
-  { icon: '↩️', title: 'Auto refunds', desc: 'No OTP in 2 minutes? You are refunded automatically. No tickets, no waiting.' },
-  { icon: '🔌', title: 'REST API', desc: 'Full API access with your API key. Automate purchases, check status, cancel — all programmatically.' },
-  { icon: '📊', title: 'Real-time dashboard', desc: 'Track orders live. OTPs appear the moment they arrive — no manual refresh needed.' },
-];
+const SERVICES = ['telegram','google','discord','whatsapp','instagram','tiktok','facebook','amazon','twitter','uber','microsoft','apple'];
 
-const SERVICES = [
-  { name: 'Telegram', img: 'https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg' },
-  { name: 'Google', img: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg' },
-  { name: 'Discord', img: 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.svg' },
-  { name: 'WhatsApp', img: 'https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg' },
-  { name: 'Instagram', img: 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png' },
-  { name: 'TikTok', img: 'https://sf-tb-sg.ibytedtos.com/obj/eden-sg/uhtyvueh7nulogpoguhm/tiktok-icon2.png' },
-  { name: 'Facebook', img: 'https://upload.wikimedia.org/wikipedia/commons/b/b9/2023_Facebook_icon.svg' },
-  { name: 'Amazon', img: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg' },
-  { name: 'Twitter/X', img: 'https://upload.wikimedia.org/wikipedia/commons/5/57/X_logo_2023_%28white%29.png' },
-  { name: 'Uber', img: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/Uber_logo_2018.png' },
-];
+function LiveCard() {
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState(0);
 
-// Phone mockup SVG
-function PhoneMockup() {
+  useEffect(() => {
+    let i = 0;
+    const t = setInterval(() => {
+      i = (i + 1) % 4;
+      setStep(i);
+      if (i === 2) setTimeout(() => setOtp('847 291'), 700);
+      if (i === 0) setOtp('');
+    }, 2800);
+    return () => clearInterval(t);
+  }, []);
+
   return (
-    <svg width="280" height="520" viewBox="0 0 280 520" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Phone body */}
-      <rect x="10" y="10" width="260" height="500" rx="36" fill="#111111" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5"/>
-      <rect x="20" y="20" width="240" height="480" rx="28" fill="#0a0a0a"/>
-      {/* Notch */}
-      <rect x="100" y="24" width="80" height="20" rx="10" fill="#111111"/>
-      {/* Screen content */}
+    <div className="float-card" style={{
+      background: 'var(--surface)',
+      border: '1px solid rgba(255,255,255,0.9)',
+      borderRadius: 24,
+      padding: 28,
+      width: '100%',
+      maxWidth: 330,
+      boxShadow: '0 40px 80px rgba(91,71,224,0.12), 0 8px 24px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.6)',
+      backdropFilter: 'blur(20px)',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Inner gradient */}
+      <div style={{
+        position: 'absolute', top: -60, right: -40,
+        width: 200, height: 200,
+        background: 'radial-gradient(circle, rgba(91,71,224,0.08) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Top row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', marginBottom: 3, fontFamily: 'Space Mono' }}>Active Number</div>
+          <div style={{ fontFamily: 'Space Mono', fontSize: 15, fontWeight: 700, color: 'var(--accent)', letterSpacing: '-0.02em' }}>+1 (424) 678-****</div>
+        </div>
+        <div style={{ position: 'relative', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {step > 0 && step < 3 && <>
+            <div className="signal-ring" style={{ width: 36, height: 36 }} />
+            <div className="signal-ring" style={{ width: 36, height: 36 }} />
+          </>}
+          <div style={{
+            width: 10, height: 10, borderRadius: '50%', zIndex: 1,
+            background: step === 2 ? 'var(--accent)' : 'var(--text4)',
+            boxShadow: step === 2 ? '0 0 16px rgba(91,71,224,0.6)' : 'none',
+            transition: 'all 0.35s',
+          }} />
+        </div>
+      </div>
+
       {/* Status bar */}
-      <text x="36" y="58" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">9:41</text>
-      <text x="210" y="58" fill="rgba(255,255,255,0.5)" fontSize="10" fontFamily="monospace">●●●</text>
-      {/* App header */}
-      <rect x="36" y="72" width="120" height="16" rx="4" fill="rgba(0,229,153,0.2)"/>
-      <rect x="36" y="72" width="60" height="16" rx="4" fill="rgba(0,229,153,0.4)"/>
-      {/* Balance card */}
-      <rect x="28" y="102" width="224" height="80" rx="12" fill="#161616" stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>
-      <text x="44" y="124" fill="rgba(255,255,255,0.4)" fontSize="9" fontFamily="monospace" letterSpacing="1">BALANCE</text>
-      <text x="44" y="148" fill="#00e599" fontSize="22" fontFamily="monospace" fontWeight="700">$24.8500</text>
-      <rect x="180" y="118" width="56" height="24" rx="6" fill="#00e599"/>
-      <text x="198" y="134" fill="#000" fontSize="10" fontWeight="700">+ Add</text>
-      {/* Order card */}
-      <rect x="28" y="198" width="224" height="110" rx="12" fill="#161616" stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>
-      <text x="44" y="220" fill="rgba(255,255,255,0.8)" fontSize="11" fontWeight="600">Active Order</text>
-      <rect x="44" y="230" width="50" height="14" rx="3" fill="rgba(245,166,35,0.2)"/>
-      <text x="48" y="241" fill="#f5a623" fontSize="8" fontWeight="700">WAITING</text>
-      <text x="44" y="268" fill="rgba(255,255,255,0.4)" fontSize="9" fontFamily="monospace">NUMBER</text>
-      <text x="44" y="284" fill="#00e599" fontSize="16" fontFamily="monospace" fontWeight="700">+1 (555) 234-8901</text>
-      <rect x="44" y="296" width="80" height="6" rx="3" fill="rgba(0,229,153,0.2)"/>
-      {/* OTP card */}
-      <rect x="28" y="322" width="224" height="80" rx="12" fill="rgba(0,229,153,0.05)" stroke="rgba(0,229,153,0.2)" strokeWidth="1"/>
-      <text x="44" y="344" fill="rgba(0,229,153,0.6)" fontSize="9" letterSpacing="1">OTP CODE</text>
-      <text x="44" y="374" fill="#00e599" fontSize="28" fontFamily="monospace" fontWeight="700" letterSpacing="6">483921</text>
-      {/* Bottom nav */}
-      <rect x="28" y="420" width="224" height="56" rx="12" fill="#161616" stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>
-      {['⊞','↑','◎','✦'].map((icon, i) => (
-        <text key={i} x={52 + i * 54} y="452" fill={i === 0 ? '#00e599' : 'rgba(255,255,255,0.3)'} fontSize="16" textAnchor="middle">{icon}</text>
-      ))}
-      {/* Side buttons */}
-      <rect x="271" y="100" width="5" height="40" rx="2.5" fill="rgba(255,255,255,0.1)"/>
-      <rect x="271" y="160" width="5" height="60" rx="2.5" fill="rgba(255,255,255,0.1)"/>
-      <rect x="4" y="130" width="5" height="50" rx="2.5" fill="rgba(255,255,255,0.1)"/>
-    </svg>
-  );
-}
+      <div style={{
+        marginBottom: 18,
+        padding: '10px 14px',
+        background: 'var(--bg2)',
+        borderRadius: 10,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 9,
+        border: '1px solid var(--border)',
+      }}>
+        <div style={{
+          width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+          background: step < 2 ? 'var(--warning)' : 'var(--success)',
+          boxShadow: step < 2 ? '0 0 8px rgba(245,166,35,0.5)' : '0 0 8px rgba(0,184,122,0.5)',
+          transition: 'all 0.4s',
+        }} />
+        <span style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600 }}>
+          {step === 0 ? 'Waiting for SMS…' : step === 1 ? 'Signal detected…' : step === 2 ? 'OTP received!' : 'Ready'}
+        </span>
+      </div>
 
-// Globe illustration
-function GlobeIllustration() {
-  return (
-    <svg width="200" height="200" viewBox="0 0 200 200" fill="none">
-      <circle cx="100" cy="100" r="80" stroke="rgba(0,229,153,0.15)" strokeWidth="1"/>
-      <circle cx="100" cy="100" r="60" stroke="rgba(0,229,153,0.1)" strokeWidth="1"/>
-      <circle cx="100" cy="100" r="40" stroke="rgba(0,229,153,0.08)" strokeWidth="1"/>
-      {/* Latitude lines */}
-      {[40,60,80,120,140,160].map(y => (
-        <line key={y} x1="20" y1={y} x2="180" y2={y} stroke="rgba(0,229,153,0.06)" strokeWidth="1"/>
-      ))}
-      {/* Longitude lines */}
-      {[40,60,80,100,120,140,160].map(x => (
-        <line key={x} x1={x} y1="20" x2={x} y2="180" stroke="rgba(0,229,153,0.06)" strokeWidth="1"/>
-      ))}
-      {/* Dots for cities */}
-      {[[100,60],[140,80],[60,90],[120,130],[80,140],[160,100],[40,110]].map(([cx,cy],i) => (
-        <g key={i}>
-          <circle cx={cx} cy={cy} r="4" fill="#00e599" opacity="0.8"/>
-          <circle cx={cx} cy={cy} r="8" fill="#00e599" opacity="0.15"/>
-        </g>
-      ))}
-      {/* Connection lines */}
-      <line x1="100" y1="60" x2="140" y2="80" stroke="rgba(0,229,153,0.3)" strokeWidth="1" strokeDasharray="3 2"/>
-      <line x1="140" y1="80" x2="120" y2="130" stroke="rgba(0,229,153,0.3)" strokeWidth="1" strokeDasharray="3 2"/>
-      <line x1="60" y1="90" x2="100" y2="60" stroke="rgba(0,229,153,0.3)" strokeWidth="1" strokeDasharray="3 2"/>
-      <line x1="80" y1="140" x2="120" y2="130" stroke="rgba(0,229,153,0.3)" strokeWidth="1" strokeDasharray="3 2"/>
-      <circle cx="100" cy="100" r="80" stroke="rgba(0,229,153,0.2)" strokeWidth="1.5" fill="none"/>
-    </svg>
+      {/* OTP display */}
+      <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {otp ? (
+          <div className="otp-pop" style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, fontFamily: 'Space Mono' }}>Verification Code</div>
+            <div style={{
+              fontFamily: 'Space Mono', fontSize: 42, fontWeight: 700,
+              color: 'var(--accent)', letterSpacing: 10,
+              textShadow: '0 0 30px rgba(91,71,224,0.3)',
+            }}>{otp}</div>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', color: 'var(--text4)', fontSize: 13, fontFamily: 'Space Mono', letterSpacing: 6 }}>
+            {step === 0 ? '— — — — —' : '…'}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom service row */}
+      <div style={{ marginTop: 16, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <ServiceLogo serviceKey="telegram" size={28} />
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>Telegram</div>
+          <div style={{ fontSize: 10, color: 'var(--text3)' }}>Registration OTP</div>
+        </div>
+        <div style={{ marginLeft: 'auto' }}>
+          <span style={{
+            fontSize: 11, fontWeight: 700, color: 'var(--success)',
+            background: 'rgba(0,184,122,0.1)', border: '1px solid rgba(0,184,122,0.2)',
+            padding: '3px 10px', borderRadius: 20, fontFamily: 'Space Mono',
+          }}>$0.12</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -107,156 +126,327 @@ export default function Home() {
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <Navbar />
 
-      {/* Hero */}
-      <div style={{ paddingTop: 100, paddingBottom: 80, position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)', width: 800, height: 600, background: 'radial-gradient(ellipse at center, rgba(0,229,153,0.05) 0%, transparent 65%)', pointerEvents: 'none' }} />
-        
-        <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 60, alignItems: 'center' }}>
+      {/* ── Hero ──────────────────────────────────────────────── */}
+      <div style={{ paddingTop: 110, paddingBottom: 100, position: 'relative', overflow: 'hidden' }}>
+        <div className="mesh-bg" />
+
+        {/* Large decorative circle */}
+        <div style={{
+          position: 'absolute', top: -200, left: '55%',
+          width: 800, height: 800,
+          background: 'radial-gradient(circle, rgba(91,71,224,0.05) 0%, transparent 60%)',
+          borderRadius: '50%', pointerEvents: 'none',
+        }} />
+
+        <div className="wrap">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 64, alignItems: 'center' }}>
+
+            {/* Text */}
             <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', background: 'rgba(0,229,153,0.08)', border: '1px solid rgba(0,229,153,0.2)', borderRadius: 20, marginBottom: 28 }}>
-                <span style={{ width: 6, height: 6, background: 'var(--accent)', borderRadius: '50%', display: 'inline-block' }} />
-                <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 500 }}>Crypto-only · No chargebacks · Instant</span>
+              {/* Pill badge */}
+              <div className="pill" style={{ marginBottom: 32, display: 'inline-flex' }}>
+                <span style={{
+                  width: 7, height: 7, background: 'var(--success)',
+                  borderRadius: '50%', boxShadow: '0 0 8px rgba(0,184,122,0.5)',
+                  animation: 'pulse-ring 2.5s ease-out infinite',
+                }} />
+                <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700, letterSpacing: '0.02em' }}>
+                  Live · Numbers available now
+                </span>
               </div>
 
-              <h1 style={{ fontSize: 'clamp(36px, 5vw, 60px)', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.04em', marginBottom: 24 }}>
-                Virtual phone numbers<br />
-                <span style={{ color: 'var(--accent)' }}>for SMS verification</span>
+              <h1 style={{
+                fontSize: 'clamp(40px, 7vw, 76px)',
+                fontWeight: 900,
+                lineHeight: 1.04,
+                letterSpacing: '-0.05em',
+                marginBottom: 28,
+                fontFamily: 'Sora, sans-serif',
+                color: 'var(--text)',
+              }}>
+                Virtual numbers<br />for SMS{' '}
+                <span className="shimmer-text">verification</span>
               </h1>
 
-              <p style={{ fontSize: 17, color: 'var(--text2)', maxWidth: 460, marginBottom: 36, lineHeight: 1.7, fontWeight: 300 }}>
-                Buy temporary numbers instantly. Receive OTP codes for any platform. Pay with crypto — no banks, no limits.
+              <p style={{
+                fontSize: 17, color: 'var(--text2)',
+                maxWidth: 440, lineHeight: 1.75,
+                fontWeight: 400, marginBottom: 40,
+              }}>
+                Get temporary phone numbers instantly. Receive OTP codes for any platform. Pay with crypto — no banks, no limits.
               </p>
 
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                 <Link href="/register">
-                  <button className="btn btn-primary btn-xl">
-                    Start for free
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </button>
+                  <button className="btn btn-primary btn-xl">Start for free →</button>
                 </Link>
                 <Link href="/pricing">
-                  <button className="btn btn-secondary btn-xl">View pricing</button>
+                  <button className="btn btn-ghost btn-xl">See pricing</button>
                 </Link>
               </div>
 
-              <div style={{ display: 'flex', gap: 24, marginTop: 36, flexWrap: 'wrap' }}>
-                {[['50+', 'Services supported'], ['100+', 'Countries covered'], ['99%', 'Delivery rate']].map(([val, label]) => (
-                  <div key={label}>
-                    <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Geist Mono, monospace', color: 'var(--text)', letterSpacing: '-0.03em' }}>{val}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>{label}</div>
+              {/* Stats row */}
+              <div style={{ display: 'flex', gap: 40, marginTop: 44, flexWrap: 'wrap' }}>
+                {[['50+', 'Services'], ['100+', 'Countries'], ['99%', 'Uptime']].map(([v, l]) => (
+                  <div key={l}>
+                    <div style={{ fontSize: 26, fontWeight: 900, fontFamily: 'Space Mono', color: 'var(--accent)', letterSpacing: '-0.04em', lineHeight: 1 }}>{v}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{l}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Phone mockup */}
-            <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: -40, background: 'radial-gradient(ellipse at center, rgba(0,229,153,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-              <PhoneMockup />
+            {/* Live card */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <LiveCard />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Services logos */}
-      <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '32px 0', background: 'var(--bg1)', overflow: 'hidden' }}>
-        <div className="container">
-          <p style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 20, textAlign: 'center' }}>Works with all major platforms</p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {SERVICES.map((s) => (
-              <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, transition: 'border-color 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                <img src={s.img} alt={s.name} style={{ width: 18, height: 18, objectFit: 'contain', filter: s.name === 'Twitter/X' || s.name === 'Amazon' ? 'invert(1)' : 'none', opacity: s.name === 'Twitter/X' || s.name === 'Amazon' ? 0.7 : 1 }} onError={e => e.target.style.display='none'} />
-                <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{s.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* How it works */}
-      <div style={{ padding: '80px 0', borderBottom: '1px solid var(--border)' }}>
-        <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How it works</p>
-              <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 36, lineHeight: 1.2 }}>Get a number in under 60 seconds</h2>
-              {[
-                { step: '01', title: 'Create account', desc: 'Sign up free. No credit card, no personal info required.' },
-                { step: '02', title: 'Deposit crypto', desc: 'Send USDT, BTC, ETH or other crypto. Wallet credited instantly after confirmation.' },
-                { step: '03', title: 'Buy a number', desc: 'Pick your service and country. We find the cheapest number from 3 providers.' },
-                { step: '04', title: 'Receive OTP', desc: 'The code appears on your dashboard automatically within seconds.' },
-              ].map((item) => (
-                <div key={item.step} style={{ display: 'flex', gap: 20, marginBottom: 28 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'Geist Mono, monospace', fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>{item.step}</div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{item.title}</div>
-                    <div style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.6 }}>{item.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(0,229,153,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
-              <GlobeIllustration />
-              <div style={{ position: 'absolute', bottom: 20, right: 20, padding: '12px 16px', background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 13 }}>
-                <div style={{ color: 'var(--text3)', fontSize: 11, marginBottom: 4 }}>Latest OTP</div>
-                <div style={{ fontFamily: 'Geist Mono, monospace', fontWeight: 700, color: 'var(--success)', fontSize: 20, letterSpacing: 4 }}>847291</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Features grid */}
-      <div style={{ padding: '80px 0', borderBottom: '1px solid var(--border)' }}>
-        <div className="container">
+      {/* ── Bento grid: everything built in ─────────────────── */}
+      <div style={{ padding: '80px 0', borderTop: '1px solid var(--border)' }}>
+        <div className="wrap">
           <div style={{ marginBottom: 48 }}>
-            <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 12 }}>Built for reliability</h2>
-            <p style={{ color: 'var(--text2)', fontSize: 15, fontWeight: 300 }}>No gimmicks. Just fast, reliable numbers.</p>
+            <div style={{
+              display: 'inline-block',
+              fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+              textTransform: 'uppercase', color: 'var(--accent)',
+              fontFamily: 'Space Mono',
+              marginBottom: 14,
+            }}>Platform</div>
+            <h2 style={{
+              fontSize: 'clamp(26px, 4vw, 44px)', fontWeight: 900,
+              letterSpacing: '-0.04em', marginBottom: 12,
+              fontFamily: 'Sora, sans-serif',
+            }}>Everything built in</h2>
+            <p style={{ color: 'var(--text2)', fontSize: 15, maxWidth: 480 }}>No gimmicks. Just what works, every single time.</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-            {FEATURES.map((f) => (
-              <div key={f.title} style={{ background: 'var(--bg)', padding: '28px 32px', transition: 'background 0.2s', cursor: 'default' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg1)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--bg)'}>
-                <div style={{ fontSize: 24, marginBottom: 14 }}>{f.icon}</div>
-                <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 8 }}>{f.title}</div>
-                <div style={{ color: 'var(--text3)', fontSize: 14, lineHeight: 1.6 }}>{f.desc}</div>
+
+          {/* Bento grid — NO EMOJIS */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+
+            {/* Instant delivery */}
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 20, padding: 32,
+              boxShadow: 'var(--shadow)',
+              backdropFilter: 'blur(12px)',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              position: 'relative', overflow: 'hidden',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'var(--shadow)'; }}
+            >
+              <div style={{
+                width: 44, height: 44, borderRadius: 12, marginBottom: 18,
+                background: 'linear-gradient(135deg, rgba(91,71,224,0.12) 0%, rgba(91,71,224,0.06) 100%)',
+                border: '1px solid rgba(91,71,224,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M10 2L12.5 8H18L13.5 11.5L15.5 17.5L10 14L4.5 17.5L6.5 11.5L2 8H7.5L10 2Z" fill="var(--accent)" opacity="0.8"/>
+                </svg>
+              </div>
+              <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 10, letterSpacing: '-0.02em', fontFamily: 'Sora' }}>Instant delivery</div>
+              <div style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.65 }}>Numbers delivered in seconds with intelligent routing for maximum availability.</div>
+            </div>
+
+            {/* Crypto only — accent card */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(91,71,224,0.07) 0%, rgba(124,74,247,0.05) 100%)',
+              border: '1px solid rgba(91,71,224,0.18)',
+              borderRadius: 20, padding: 32,
+              boxShadow: '0 8px 32px rgba(91,71,224,0.08)',
+              backdropFilter: 'blur(12px)',
+              position: 'relative', overflow: 'hidden',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 16px 48px rgba(91,71,224,0.15)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 8px 32px rgba(91,71,224,0.08)'; }}
+            >
+              <div style={{
+                position: 'absolute', top: -30, right: -30,
+                width: 140, height: 140,
+                background: 'radial-gradient(circle, rgba(91,71,224,0.10) 0%, transparent 70%)',
+                borderRadius: '50%', pointerEvents: 'none',
+              }} />
+              <div style={{
+                width: 44, height: 44, borderRadius: 12, marginBottom: 18,
+                background: 'linear-gradient(135deg, rgba(91,71,224,0.2) 0%, rgba(91,71,224,0.10) 100%)',
+                border: '1px solid rgba(91,71,224,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <rect x="3" y="6" width="14" height="10" rx="2" stroke="var(--accent)" strokeWidth="1.5"/>
+                  <path d="M3 9h14" stroke="var(--accent)" strokeWidth="1.5"/>
+                  <circle cx="6.5" cy="12.5" r="1" fill="var(--accent)"/>
+                </svg>
+              </div>
+              <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 10, letterSpacing: '-0.02em', color: 'var(--accent)', fontFamily: 'Sora' }}>Crypto only</div>
+              <div style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.65 }}>USDT, BTC, ETH and more. Zero chargebacks. Payments are final and instant.</div>
+            </div>
+
+            {/* Auto refund */}
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 20, padding: 32,
+              boxShadow: 'var(--shadow)',
+              backdropFilter: 'blur(12px)',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'var(--shadow)'; }}
+            >
+              <div style={{
+                width: 44, height: 44, borderRadius: 12, marginBottom: 18,
+                background: 'rgba(0,184,122,0.1)',
+                border: '1px solid rgba(0,184,122,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M4 10C4 6.68629 6.68629 4 10 4C12.2091 4 14.1334 5.20693 15.1667 7M16 10C16 13.3137 13.3137 16 10 16C7.79086 16 5.86655 14.7931 4.83333 13" stroke="#00b87a" strokeWidth="1.5" strokeLinecap="round"/>
+                  <path d="M13 7H15.5V4.5" stroke="#00b87a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 10, letterSpacing: '-0.02em', fontFamily: 'Sora' }}>Auto refund</div>
+              <div style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.65 }}>No OTP in 2 minutes? Wallet refunded automatically. No support ticket needed.</div>
+            </div>
+
+            {/* REST API */}
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 20, padding: 32,
+              boxShadow: 'var(--shadow)',
+              backdropFilter: 'blur(12px)',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = 'var(--shadow-lg)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'var(--shadow)'; }}
+            >
+              <div style={{
+                width: 44, height: 44, borderRadius: 12, marginBottom: 18,
+                background: 'rgba(59,126,248,0.1)',
+                border: '1px solid rgba(59,126,248,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M6 7L2 10L6 13" stroke="var(--info)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M14 7L18 10L14 13" stroke="var(--info)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M12 4L8 16" stroke="var(--info)" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 10, letterSpacing: '-0.02em', fontFamily: 'Sora' }}>REST API</div>
+              <div style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.65 }}>Full API access with X-API-Key auth. Automate purchases and OTP polling programmatically.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── How it works ──────────────────────────────────────── */}
+      <div style={{ padding: '80px 0', borderTop: '1px solid var(--border)' }}>
+        <div className="wrap">
+          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--accent)', fontFamily: 'Space Mono', marginBottom: 14 }}>Process</div>
+            <h2 style={{ fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 900, letterSpacing: '-0.04em', fontFamily: 'Sora' }}>How it works</h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 40, maxWidth: 900, margin: '0 auto' }}>
+            {[
+              { n: '01', t: 'Create account', d: 'Sign up free — no credit card required.' },
+              { n: '02', t: 'Deposit crypto', d: 'Fund your wallet instantly with crypto.' },
+              { n: '03', t: 'Get a number', d: 'Pick a service and country, receive a number.' },
+              { n: '04', t: 'Receive OTP', d: 'Your verification code appears automatically.' },
+            ].map(({ n, t, d }) => (
+              <div key={n} style={{ textAlign: 'center', position: 'relative' }}>
+                <div style={{
+                  width: 52, height: 52, borderRadius: 14,
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  boxShadow: 'var(--shadow)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 16px',
+                  fontFamily: 'Space Mono', fontSize: 13, fontWeight: 700,
+                  color: 'var(--accent)',
+                }}>
+                  {n}
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 8, letterSpacing: '-0.02em', fontFamily: 'Sora' }}>{t}</div>
+                <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>{d}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* CTA */}
-      <div style={{ padding: '80px 0', textAlign: 'center' }}>
-        <div className="container">
-          <div style={{ maxWidth: 500, margin: '0 auto' }}>
-            <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 16 }}>Start in 60 seconds</h2>
-            <p style={{ color: 'var(--text2)', marginBottom: 32, fontWeight: 300, fontSize: 15 }}>No credit card. No KYC. Just crypto and a number.</p>
+      {/* ── Services ──────────────────────────────────────────── */}
+      <div style={{ padding: '56px 0', borderTop: '1px solid var(--border)' }}>
+        <div className="wrap">
+          <p style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 24, textAlign: 'center', fontFamily: 'Space Mono' }}>
+            Works with all major platforms
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+            {SERVICES.map(s => (
+              <div key={s} style={{
+                display: 'flex', alignItems: 'center', gap: 9,
+                padding: '9px 16px',
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                borderRadius: 12, fontSize: 13, color: 'var(--text2)', fontWeight: 600,
+                boxShadow: 'var(--shadow-sm)',
+                backdropFilter: 'blur(8px)',
+                transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
+                cursor: 'default',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow)'; e.currentTarget.style.borderColor = 'var(--border2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+              >
+                <ServiceLogo serviceKey={s} size={20} />
+                <span style={{ textTransform: 'capitalize' }}>{s === 'twitter' ? 'Twitter/X' : s}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── CTA ───────────────────────────────────────────────── */}
+      <div style={{ padding: '96px 0', borderTop: '1px solid var(--border)', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div className="mesh-bg" />
+        <div className="wrap">
+          <div style={{
+            maxWidth: 600, margin: '0 auto',
+            background: 'var(--surface)',
+            border: '1px solid rgba(255,255,255,0.9)',
+            borderRadius: 28, padding: '56px 48px',
+            boxShadow: 'var(--shadow-xl)',
+            backdropFilter: 'blur(20px)',
+          }}>
+            <h2 style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 900, letterSpacing: '-0.05em', marginBottom: 16, fontFamily: 'Sora' }}>
+              Start in 60 seconds
+            </h2>
+            <p style={{ color: 'var(--text2)', marginBottom: 36, fontSize: 16, lineHeight: 1.7 }}>
+              Create an account, deposit crypto, and receive your first verification code.
+            </p>
             <Link href="/register">
-              <button className="btn btn-primary btn-xl">Create free account</button>
+              <button className="btn btn-primary btn-xl">Create free account →</button>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Footer */}
-      <div style={{ borderTop: '1px solid var(--border)', padding: '24px 0' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+      {/* ── Footer ────────────────────────────────────────────── */}
+      <div style={{ borderTop: '1px solid var(--border)', padding: '28px 0' }}>
+        <div className="wrap" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 20, height: 20, background: 'var(--accent)', borderRadius: 4 }} />
-            <span style={{ fontSize: 13, fontWeight: 600 }}>RingSlot</span>
-            <span style={{ fontSize: 13, color: 'var(--text3)' }}>© 2026</span>
+            <LogoIcon size={26} />
+            <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 600 }}>© 2026 RingSlot</span>
           </div>
-          <div style={{ display: 'flex', gap: 24 }}>
-            {[['Pricing', '/pricing'], ['API', '/api-docs'], ['Support', '/support']].map(([label, href]) => (
-              <a key={href} href={href} style={{ fontSize: 13, color: 'var(--text3)', transition: 'color 0.15s' }}
-                onMouseEnter={e => e.target.style.color = 'var(--text2)'}
-                onMouseLeave={e => e.target.style.color = 'var(--text3)'}>{label}</a>
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            {[['Pricing', '/pricing'], ['API', '/api-docs'], ['Support', '/support'], ['support@ringslot.shop', 'mailto:support@ringslot.shop']].map(([l, h]) => (
+              <Link key={h} href={h} style={{ fontSize: 13, color: 'var(--text3)', transition: 'color 0.15s', fontWeight: 500 }}
+                onMouseEnter={e => e.target.style.color = 'var(--accent)'}
+                onMouseLeave={e => e.target.style.color = 'var(--text3)'}>{l}</Link>
             ))}
           </div>
         </div>

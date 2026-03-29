@@ -2,6 +2,9 @@
 module.exports = {
   reactStrictMode: true,
   images: {
-    domains: ['api.qrserver.com', 'chart.googleapis.com'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'api.qrserver.com' },
+      { protocol: 'https', hostname: 'quickchart.io' },
+    ],
   },
 };
