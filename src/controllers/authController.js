@@ -291,39 +291,48 @@ export async function forgotPassword(req, res) {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
 
+  // Always respond with the same message — never reveal if email exists
+  const OK = { message: 'If that email is registered you will receive a reset link shortly.' };
+
   try {
     const { rows } = await query(
       'SELECT id, email, is_active FROM users WHERE email = $1',
-      [email.toLowerCase()]
+      [email.trim().toLowerCase()]
     );
 
-    // Always return 200 — never reveal whether an email exists
+    // No user or inactive — return OK silently (security: don't reveal account existence)
     if (!rows[0] || !rows[0].is_active) {
-      return res.json({ message: 'If that email is registered you will receive a reset link shortly.' });
+      return res.json(OK);
     }
 
-    const user  = rows[0];
+    const user = rows[0];
     const token = generateToken(32);
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    // Delete any existing reset tokens for this user
+    // Delete old reset tokens for this user
     await query('DELETE FROM password_reset_tokens WHERE user_id = $1', [user.id]);
 
+    // Insert new token — use interval string, not JS Date, for max DB compatibility
     await query(
       `INSERT INTO password_reset_tokens (user_id, token, expires_at)
-       VALUES ($1, $2, $3)`,
-      [user.id, token, expiresAt]
+       VALUES ($1, $2, NOW() + INTERVAL '1 hour')`,
+      [user.id, token]
     );
 
-    sendPasswordResetEmail({ to: user.email, token }).catch((err) =>
-      logger.warn('Password reset email failed', { error: err.message })
-    );
+    // Fire-and-forget — email failure should NOT fail the request
+    sendPasswordResetEmail({ to: user.email, token })
+      .then((result) => {
+        if (result.ok) {
+          logger.info('Password reset email sent', { userId: user.id });
+        } else {
+          logger.warn('Password reset email not sent', { userId: user.id });
+        }
+      })
+      .catch((err) => logger.warn('Password reset email error', { error: err.message }));
 
-    logger.info('Password reset requested', { userId: user.id });
-    return res.json({ message: 'If that email is registered you will receive a reset link shortly.' });
+    return res.json(OK);
   } catch (err) {
-    logger.error('forgotPassword error', { error: err.message });
-    return res.status(500).json({ error: 'Something went wrong' });
+    logger.error('forgotPassword error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ error: 'Something went wrong. Please try again later.' });
   }
 }
 
