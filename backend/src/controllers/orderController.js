@@ -10,8 +10,7 @@ import logger from '../utils/logger.js';
 export async function listServices(req, res) {
   try {
     const { rows } = await query(
-      `SELECT service_key, display_name, markup,
-              COALESCE(base_price, 0) AS base_price
+      `SELECT service_key, display_name, markup
        FROM services
        WHERE is_active = TRUE
        ORDER BY display_name ASC`
