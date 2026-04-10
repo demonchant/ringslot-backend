@@ -20,23 +20,21 @@ export const globalLimiter = rateLimit({
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60_000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many attempts. Please wait 15 minutes and try again.' },
-});
-
-// Separate looser limiter just for forgot-password (doesn't need to be as strict)
-export const forgotPasswordLimiter = rateLimit({
-  windowMs: 60 * 60_000, // 1 hour window
-  max: 5,                // 5 requests per hour per IP
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many password reset requests. Please try again in an hour.' },
+  max: 10,
+  message: { error: 'Too many login attempts' },
 });
 
 export const buyLimiter = rateLimit({
   windowMs: 60_000,
   max: 10,
   message: { error: 'Purchase rate limit exceeded' },
+});
+
+
+export const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many password reset requests. Please try again in 1 hour.' },
 });

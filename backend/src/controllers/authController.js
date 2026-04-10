@@ -1,14 +1,14 @@
-// src/controllers/authController.js
-import bcrypt from 'bcryptjs';
-import jwt    from 'jsonwebtoken';
+// authController.js — complete with device verification, welcome email, forgot/reset password
+import bcrypt    from 'bcryptjs';
+import jwt       from 'jsonwebtoken';
 import { v4 as uuid } from 'uuid';
-import { query }      from '../config/database.js';
+import { query } from '../config/database.js';
 import { hashDevice, generateToken, parseDeviceLabel } from '../utils/deviceFingerprint.js';
 import { sendLoginVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from '../utils/email.js';
 import logger from '../utils/logger.js';
 
 // ── Helpers ───────────────────────────────────────────────────
-function makeToken(user) {
+function makeJWT(user) {
   return jwt.sign(
     { id: user.id, email: user.email, role: user.role },
     process.env.JWT_SECRET,
@@ -16,23 +16,22 @@ function makeToken(user) {
   );
 }
 
-// Check if device-tracking tables exist (graceful fallback if migration not run)
+// One-time check whether device tables exist (graceful fallback if migration not run)
 let _tablesChecked = false;
-let _tablesExist   = false;
-async function deviceTablesExist() {
-  if (_tablesChecked) return _tablesExist;
+let _tablesOK      = false;
+async function deviceTablesOK() {
+  if (_tablesChecked) return _tablesOK;
   try {
     await query('SELECT 1 FROM user_devices LIMIT 1');
-    await query('SELECT 1 FROM login_tokens LIMIT 1');
-    _tablesExist   = true;
-    _tablesChecked = true;
-    logger.info('Device tracking tables: OK');
+    await query('SELECT 1 FROM login_tokens  LIMIT 1');
+    _tablesOK      = true;
+    logger.info('Device tables: OK');
   } catch {
-    _tablesExist   = false;
-    _tablesChecked = true;
-    logger.warn('Device tracking tables missing — login will skip device verification. Run migrate_add_missing_tables.sql to enable it.');
+    _tablesOK      = false;
+    logger.warn('Device tables missing — run migrate_add_missing_tables.sql to enable device verification');
   }
-  return _tablesExist;
+  _tablesChecked = true;
+  return _tablesOK;
 }
 
 const BLOCKED_DOMAINS = new Set([
@@ -48,16 +47,14 @@ const BLOCKED_DOMAINS = new Set([
 export async function register(req, res) {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
-    if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    if (!email || !password)  return res.status(400).json({ error: 'Email and password required' });
+    if (password.length < 8)  return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
     const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
 
     const domain = email.split('@')[1]?.toLowerCase();
-    if (BLOCKED_DOMAINS.has(domain)) {
-      return res.status(400).json({ error: 'Disposable email addresses are not allowed' });
-    }
+    if (BLOCKED_DOMAINS.has(domain)) return res.status(400).json({ error: 'Disposable email addresses are not allowed' });
 
     const exists = await query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
     if (exists.rows.length) return res.status(409).json({ error: 'Email already registered' });
@@ -81,15 +78,15 @@ export async function register(req, res) {
         if (r.ok) logger.info('Welcome email sent', { userId: user.id });
         else logger.warn('Welcome email failed', { userId: user.id, error: r.error });
       })
-      .catch(err => logger.warn('Welcome email exception', { error: err.message }));
+      .catch(err => logger.warn('Welcome email error', { error: err.message }));
 
     return res.status(201).json({
-      token:  makeToken(user),
+      token:  makeJWT(user),
       apiKey: user.api_key,
       user:   { id: user.id, email: user.email, role: user.role },
     });
   } catch (err) {
-    logger.error('Register error', { error: err.message, stack: err.stack });
+    logger.error('Register error', { error: err.message });
     return res.status(500).json({ error: 'Registration failed' });
   }
 }
@@ -110,40 +107,40 @@ export async function login(req, res) {
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-    // If device tables don't exist, skip verification and log in directly
-    const hasDeviceTables = await deviceTablesExist();
-    if (!hasDeviceTables) {
-      logger.warn('Skipping device verification — tables not found', { userId: user.id });
+    // Skip device check if tables aren't set up yet
+    const canVerify = await deviceTablesOK();
+    if (!canVerify) {
+      logger.warn('Device verification skipped — tables missing', { userId: user.id });
       return res.json({
-        token:  makeToken(user),
+        token:  makeJWT(user),
         apiKey: user.api_key,
         user:   { id: user.id, email: user.email, role: user.role },
       });
     }
 
-    // Device fingerprint
+    // Fingerprint this device
     const ip          = (req.headers['x-forwarded-for'] || req.ip || 'unknown').split(',')[0].trim();
     const ua          = req.headers['user-agent'] || '';
     const deviceHash  = hashDevice(ip, ua);
     const deviceLabel = parseDeviceLabel(ua);
 
-    // Check known devices
+    // Check if device is known and trusted
     const { rows: devices } = await query(
-      `SELECT id, verified FROM user_devices WHERE user_id = $1 AND device_hash = $2`,
+      'SELECT id, verified FROM user_devices WHERE user_id = $1 AND device_hash = $2',
       [user.id, deviceHash]
     );
     const knownDevice  = devices[0];
     const isFirstLogin = !knownDevice;
 
     if (knownDevice?.verified) {
-      // Trusted device — update timestamp and log in immediately
+      // Trusted device — log in immediately, no email needed
       await query(
-        `UPDATE user_devices SET last_seen_at = NOW(), ip_address = $1 WHERE id = $2`,
+        'UPDATE user_devices SET last_seen_at = NOW(), ip_address = $1 WHERE id = $2',
         [ip, knownDevice.id]
       );
       logger.info('Login: trusted device', { userId: user.id, device: deviceLabel });
       return res.json({
-        token:  makeToken(user),
+        token:  makeJWT(user),
         apiKey: user.api_key,
         user:   { id: user.id, email: user.email, role: user.role },
       });
@@ -160,7 +157,8 @@ export async function login(req, res) {
       [user.id, deviceHash, ip, ua, deviceLabel]
     );
 
-    await query(`DELETE FROM login_tokens WHERE user_id = $1 AND device_hash = $2`, [user.id, deviceHash]);
+    // Delete old tokens for this device, create fresh one
+    await query('DELETE FROM login_tokens WHERE user_id = $1 AND device_hash = $2', [user.id, deviceHash]);
 
     const verifyToken = generateToken(32);
     await query(
@@ -169,13 +167,13 @@ export async function login(req, res) {
       [user.id, verifyToken, deviceHash, ip, ua]
     );
 
-    // Send verification email from noreply@ringslot.shop
+    // Send verification email — non-blocking
     sendLoginVerificationEmail({ to: user.email, token: verifyToken, deviceLabel, ip, isFirstLogin })
       .then(r => {
-        if (r.ok) logger.info('Verification email sent', { userId: user.id, isFirstLogin });
+        if (r.ok) logger.info('Verification email sent', { userId: user.id, isFirstLogin, device: deviceLabel });
         else logger.warn('Verification email failed', { userId: user.id, error: r.error });
       })
-      .catch(err => logger.warn('Verification email exception', { error: err.message }));
+      .catch(err => logger.warn('Verification email error', { error: err.message }));
 
     return res.status(202).json({
       requiresVerification: true,
@@ -190,11 +188,10 @@ export async function login(req, res) {
   }
 }
 
-// ── Verify device via email link ──────────────────────────────
+// ── Verify device (email link click) ─────────────────────────
 export async function verifyDevice(req, res) {
   const { token } = req.params;
-  const FRONTEND = process.env.FRONTEND_URL || 'https://ringslot.shop';
-
+  const FRONTEND  = process.env.FRONTEND_URL || 'https://ringslot.shop';
   if (!token) return res.redirect(`${FRONTEND}/login?verify=invalid`);
 
   try {
@@ -205,28 +202,24 @@ export async function verifyDevice(req, res) {
        WHERE lt.token = $1`,
       [token]
     );
-    const record = rows[0];
+    const r = rows[0];
 
-    if (!record)              return res.redirect(`${FRONTEND}/login?verify=invalid`);
-    if (record.used_at)       return res.redirect(`${FRONTEND}/login?verify=already_used`);
-    if (!record.is_active)    return res.redirect(`${FRONTEND}/login?verify=disabled`);
-    if (new Date(record.expires_at) < new Date()) {
-      return res.redirect(`${FRONTEND}/login?verify=expired`);
-    }
+    if (!r)            return res.redirect(`${FRONTEND}/login?verify=invalid`);
+    if (r.used_at)     return res.redirect(`${FRONTEND}/login?verify=already_used`);
+    if (!r.is_active)  return res.redirect(`${FRONTEND}/login?verify=disabled`);
+    if (new Date(r.expires_at) < new Date()) return res.redirect(`${FRONTEND}/login?verify=expired`);
 
-    // Mark token used and device verified
-    await query(`UPDATE login_tokens SET used_at = NOW() WHERE token = $1`, [token]);
-    await query(
-      `UPDATE user_devices SET verified = TRUE, last_seen_at = NOW() WHERE user_id = $1 AND device_hash = $2`,
-      [record.user_id, record.device_hash]
-    );
+    // Mark used, mark device trusted
+    await query('UPDATE login_tokens  SET used_at = NOW()    WHERE token = $1', [token]);
+    await query('UPDATE user_devices  SET verified = TRUE, last_seen_at = NOW() WHERE user_id = $1 AND device_hash = $2',
+      [r.user_id, r.device_hash]);
 
-    const jwtToken = makeToken({ id: record.uid, email: record.email, role: record.role });
-    logger.info('Device verified', { userId: record.uid });
+    const jwtToken = makeJWT({ id: r.uid, email: r.email, role: r.role });
+    logger.info('Device verified', { userId: r.uid });
 
     return res.redirect(`${FRONTEND}/auth/callback?jwt=${jwtToken}&verified=true`);
   } catch (err) {
-    logger.error('verifyDevice error', { error: err.message, stack: err.stack });
+    logger.error('verifyDevice error', { error: err.message });
     return res.redirect(`${process.env.FRONTEND_URL || 'https://ringslot.shop'}/login?verify=error`);
   }
 }
@@ -243,37 +236,36 @@ export async function forgotPassword(req, res) {
       'SELECT id, email, is_active FROM users WHERE email = $1',
       [email.trim().toLowerCase()]
     );
-
     if (!rows[0] || !rows[0].is_active) return res.json(OK);
 
     const user  = rows[0];
-    const token = generateToken(32);
+    const tok   = generateToken(32);
 
     await query('DELETE FROM password_reset_tokens WHERE user_id = $1', [user.id]);
     await query(
       `INSERT INTO password_reset_tokens (user_id, token, expires_at)
        VALUES ($1, $2, NOW() + INTERVAL '1 hour')`,
-      [user.id, token]
+      [user.id, tok]
     );
 
-    sendPasswordResetEmail({ to: user.email, token })
+    sendPasswordResetEmail({ to: user.email, token: tok })
       .then(r => {
         if (r.ok) logger.info('Password reset email sent', { userId: user.id });
         else logger.warn('Password reset email failed', { userId: user.id, error: r.error });
       })
-      .catch(err => logger.warn('Password reset email exception', { error: err.message }));
+      .catch(err => logger.warn('Password reset email error', { error: err.message }));
 
     return res.json(OK);
   } catch (err) {
     logger.error('forgotPassword error', { error: err.message, stack: err.stack });
-    return res.status(500).json({ error: 'Something went wrong. Please try again later.', detail: err.message });
+    return res.status(500).json({ error: 'Something went wrong.', detail: err.message });
   }
 }
 
 // ── Reset password ────────────────────────────────────────────
 export async function resetPassword(req, res) {
   const { token, password } = req.body;
-  if (!token || !password) return res.status(400).json({ error: 'Token and new password are required' });
+  if (!token || !password) return res.status(400).json({ error: 'Token and password required' });
   if (password.length < 8)  return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
   try {
@@ -282,39 +274,35 @@ export async function resetPassword(req, res) {
        JOIN users u ON u.id = rt.user_id WHERE rt.token = $1`,
       [token]
     );
-    const record = rows[0];
-    if (!record)         return res.status(400).json({ error: 'Invalid or expired reset link' });
-    if (record.used_at)  return res.status(400).json({ error: 'This link has already been used' });
-    if (new Date(record.expires_at) < new Date()) {
-      return res.status(400).json({ error: 'This reset link has expired. Please request a new one.' });
-    }
+    const r = rows[0];
+    if (!r)        return res.status(400).json({ error: 'Invalid or expired reset link' });
+    if (r.used_at) return res.status(400).json({ error: 'This link has already been used' });
+    if (new Date(r.expires_at) < new Date()) return res.status(400).json({ error: 'Reset link has expired. Please request a new one.' });
 
     const hash = await bcrypt.hash(password, 12);
-    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, record.user_id]);
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, r.user_id]);
     await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE token = $1', [token]);
-    await query('DELETE FROM login_tokens WHERE user_id = $1', [record.user_id]);
+    await query('DELETE FROM login_tokens WHERE user_id = $1', [r.user_id]); // force re-verify all devices
 
-    logger.info('Password reset completed', { userId: record.user_id });
+    logger.info('Password reset', { userId: r.user_id });
     return res.json({ success: true, message: 'Password updated. You can now sign in.' });
   } catch (err) {
-    logger.error('resetPassword error', { error: err.message, stack: err.stack });
-    return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+    logger.error('resetPassword error', { error: err.message });
+    return res.status(500).json({ error: 'Something went wrong.' });
   }
 }
 
 // ── Validate reset token ──────────────────────────────────────
 export async function validateResetToken(req, res) {
-  const { token } = req.params;
   try {
     const { rows } = await query(
-      `SELECT expires_at, used_at FROM password_reset_tokens WHERE token = $1`, [token]
+      'SELECT expires_at, used_at FROM password_reset_tokens WHERE token = $1',
+      [req.params.token]
     );
     const r = rows[0];
     if (!r || r.used_at || new Date(r.expires_at) < new Date()) return res.json({ valid: false });
     return res.json({ valid: true });
-  } catch {
-    return res.json({ valid: false });
-  }
+  } catch { return res.json({ valid: false }); }
 }
 
 // ── Get current user ──────────────────────────────────────────
@@ -334,7 +322,7 @@ export async function regenerateKey(req, res) {
   return res.json({ apiKey: newKey });
 }
 
-// ── List devices ──────────────────────────────────────────────
+// ── My devices ────────────────────────────────────────────────
 export async function getMyDevices(req, res) {
   try {
     const { rows } = await query(
@@ -350,7 +338,7 @@ export async function getMyDevices(req, res) {
 export async function revokeDevice(req, res) {
   try {
     const { rowCount } = await query(
-      `DELETE FROM user_devices WHERE id = $1 AND user_id = $2`,
+      'DELETE FROM user_devices WHERE id = $1 AND user_id = $2',
       [req.params.deviceId, req.user.id]
     );
     if (!rowCount) return res.status(404).json({ error: 'Device not found' });

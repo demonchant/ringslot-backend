@@ -1,3 +1,4 @@
+import logger from '../utils/logger.js';
 import { query } from '../config/database.js';
 import { clearMarkupCache } from '../services/markupEngine.js';
 
@@ -51,11 +52,27 @@ export async function toggleProvider(req, res) {
 }
 
 export async function getUsers(req, res) {
-  const { rows } = await query(`
-    SELECT u.id, u.email, u.role, u.is_active, u.created_at, w.balance
-    FROM users u LEFT JOIN wallets w ON w.user_id = u.id ORDER BY u.created_at DESC LIMIT 200
-  `);
-  return res.json(rows);
+  try {
+    const { search } = req.query;
+    let sql = `
+      SELECT u.id, u.email, u.role, u.is_active, u.created_at,
+             COALESCE(w.balance, 0) AS balance,
+             (SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) AS order_count
+      FROM users u
+      LEFT JOIN wallets w ON w.user_id = u.id
+    `;
+    const params = [];
+    if (search) {
+      params.push(`%${search.toLowerCase()}%`);
+      sql += ` WHERE LOWER(u.email) LIKE $1`;
+    }
+    sql += ` ORDER BY u.created_at DESC LIMIT 500`;
+    const { rows } = await query(sql, params);
+    return res.json(rows);
+  } catch (err) {
+    logger.error('getUsers error', { error: err.message });
+    return res.status(500).json({ error: err.message });
+  }
 }
 
 export async function toggleUser(req, res) {
