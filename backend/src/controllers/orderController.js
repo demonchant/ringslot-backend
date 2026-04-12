@@ -114,3 +114,72 @@ export async function getOrders(req, res) {
   );
   return res.json(rows);
 }
+
+// ── Rent a number (1-12 months) ──────────────────────────────
+export async function rentNumber(req, res) {
+  try {
+    const { service, country = 'any', duration = 30 } = req.body;
+    if (!service) return res.status(400).json({ error: 'Service is required' });
+
+    const days = Math.min(Math.max(parseInt(duration) || 30, 30), 365);
+    const PRICE_PER_DAY = 0.15; // $0.15/day
+    const totalPrice = parseFloat((days * PRICE_PER_DAY).toFixed(2));
+
+    // Check balance
+    const { rows: wallets } = await query(
+      'SELECT balance FROM wallets WHERE user_id = $1 FOR UPDATE',
+      [req.user.id]
+    );
+    if (!wallets[0] || parseFloat(wallets[0].balance) < totalPrice) {
+      return res.status(400).json({ error: `Insufficient balance. Need $${totalPrice.toFixed(2)}.` });
+    }
+
+    // Try to get a number from providers
+    let result;
+    try {
+      const { buyWithFailover } = await import('../services/providerRouter.js');
+      result = await buyWithFailover(service, country);
+    } catch (err) {
+      return res.status(400).json({ error: `No numbers available for ${service} in ${country}. Try a different country.` });
+    }
+
+    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+    // Deduct balance
+    await query(
+      'UPDATE wallets SET balance = balance - $1 WHERE user_id = $2',
+      [totalPrice, req.user.id]
+    );
+
+    // Record the rental order
+    const { rows: orderRows } = await query(
+      `INSERT INTO orders
+         (user_id, service, phone_number, provider, country, provider_order_id, status, user_price, is_rental, rental_expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'rental_active', $7, TRUE, $8)
+       RETURNING id`,
+      [req.user.id, service, result.number, result.provider, country, result.orderId, totalPrice, expiresAt]
+    );
+
+    // Log revenue
+    await query(
+      `INSERT INTO platform_revenue (order_id, user_paid, provider_cost, profit)
+       VALUES ($1, $2, $3, $4)`,
+      [orderRows[0].id, totalPrice, result.providerPrice || 0, totalPrice - (result.providerPrice || 0)]
+    ).catch(() => {});
+
+    logger.info('Rental created', { userId: req.user.id, service, number: result.number, days, price: totalPrice });
+
+    return res.json({
+      number:    result.number,
+      service,
+      country,
+      duration:  days,
+      price:     totalPrice,
+      expiresAt: expiresAt.toISOString(),
+      orderId:   orderRows[0].id,
+    });
+  } catch (err) {
+    logger.error('rentNumber error', { error: err.message, stack: err.stack });
+    return res.status(500).json({ error: 'Rental failed. Please try again.' });
+  }
+}

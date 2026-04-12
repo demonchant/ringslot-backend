@@ -7,7 +7,7 @@ import {
 } from '../controllers/authController.js';
 
 import {
-  listServices, buyNumber, getSMS, cancelNumber, getOrders,
+  listServices, buyNumber, getSMS, cancelNumber, getOrders, rentNumber,
 } from '../controllers/orderController.js';
 
 import {
@@ -64,6 +64,7 @@ router.get( '/wallet/deposit/:id/status',   depositStatus);
 router.post('/orders/buy',    buyLimiter, buyNumber);
 router.get( '/orders/sms',               getSMS);
 router.post('/orders/cancel',            cancelNumber);
+router.post('/orders/rent',              rentNumber);
 router.get( '/orders',                   getOrders);
 
 // Support (user)
