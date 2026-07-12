@@ -1,0 +1,47 @@
+# ============================================================
+# RingSlot — Docker Compose Development Override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ============================================================
+
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: ringslot-api-dev
+    command: ["node", "--watch", "src/server.js"]
+    ports:
+      - "${PORT:-4000}:4000"
+      - "9229:9229"  # Node.js debugger port
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-ringslot}:${POSTGRES_PASSWORD:-ringslot_secret}@postgres:5432/${POSTGRES_DB:-ringslot}
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      # Mount source code for live reload
+      - ./backend/src:/app/src:ro
+      - ./backend/package.json:/app/package.json:ro
+      # Prevent overwriting container node_modules
+      - /app/node_modules
+    # Override health check for faster feedback in dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"

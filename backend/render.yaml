@@ -1,0 +1,111 @@
+# ============================================================
+# RingSlot — Render Blueprint (Infrastructure as Code)
+# Deploy with: render blueprint apply
+# Docs: https://render.com/docs/blueprint-spec
+# ============================================================
+
+services:
+  # ── Web Service: API ─────────────────────────────────────────
+  - type: web
+    name: ringslot-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    repo: https://github.com/your-org/ringslot-backend
+    branch: main
+    plan: starter
+    region: oregon
+    numInstances: 1
+    autoDeploy: true
+    healthCheckPath: /api/health
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+      targetMemoryPercent: 75
+      targetCPUPercent: 70
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4000"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ringslot-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: ringslot-redis
+          type: redis
+          property: connectionString
+      - key: JWT_SECRET
+        fromGroup: ringslot-secrets
+      - key: FRONTEND_URL
+        fromGroup: ringslot-config
+      - key: BACKEND_URL
+        fromGroup: ringslot-config
+      - key: SMSACTIVATE_API_KEY
+        fromGroup: ringslot-secrets
+      - key: FIVESIM_API_KEY
+        fromGroup: ringslot-secrets
+      - key: SMSMAN_API_KEY
+        fromGroup: ringslot-secrets
+      - key: NOWPAYMENTS_API_KEY
+        fromGroup: ringslot-secrets
+      - key: NOWPAYMENTS_IPN_SECRET
+        fromGroup: ringslot-secrets
+      - key: RESEND_API_KEY
+        fromGroup: ringslot-secrets
+      - key: RESEND_FROM_EMAIL
+        fromGroup: ringslot-config
+      - key: SUPPORT_EMAIL
+        fromGroup: ringslot-config
+
+# ── Database: PostgreSQL ───────────────────────────────────────
+databases:
+  - name: ringslot-db
+    plan: starter
+    region: oregon
+    databaseName: ringslot
+    user: ringslot
+    ipAllowList: []  # Only allow internal connections
+    postgresMajorVersion: "15"
+
+# ── Redis ──────────────────────────────────────────────────────
+# Note: Render Redis is defined as a service type
+services:
+  - type: redis
+    name: ringslot-redis
+    plan: starter
+    region: oregon
+    ipAllowList: []  # Only allow internal connections
+    maxmemoryPolicy: allkeys-lru
+
+# ── Environment Variable Groups ────────────────────────────────
+envVarGroups:
+  - name: ringslot-secrets
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SMSACTIVATE_API_KEY
+        sync: false
+      - key: FIVESIM_API_KEY
+        sync: false
+      - key: SMSMAN_API_KEY
+        sync: false
+      - key: NOWPAYMENTS_API_KEY
+        sync: false
+      - key: NOWPAYMENTS_IPN_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+
+  - name: ringslot-config
+    envVars:
+      - key: FRONTEND_URL
+        value: https://ringslot.shop
+      - key: BACKEND_URL
+        value: https://ringslot-backend.onrender.com
+      - key: RESEND_FROM_EMAIL
+        value: "RingSlot <noreply@ringslot.shop>"
+      - key: SUPPORT_EMAIL
+        value: support@ringslot.shop
